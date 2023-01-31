@@ -1,0 +1,4 @@
+datasets
+torch
+pytorch_lightning
+torchtext
