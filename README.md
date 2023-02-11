@@ -8,7 +8,7 @@
       1. learn the FFN network via an examples: 
          1. construct NN not using library [example1](./src/SimpleNN/1.FFN_no_lib.ipynb) 
          2. and using `torch.nn`, `torch.optim` libraries [example2](./src/SimpleNN/2.FFN_torch_lib.ipynb) 
-         3. Do [exercise 4](./src/SimpleNN/3.ex4.FFN.ipynb)
+         3. Do [exercise 4](./src/SimpleNN/3.ex4.FFN.ipynb) and [exercise 5](./src/SimpleNN/ex5.FFN_emotion.ipynb)
    2. check the optimizer function (Adam/SGD/Adagrad/..) and learning rate values
    3. write log or tensorboard  
 
@@ -16,9 +16,14 @@
    1. Fix the error in the this code [ex1](src/0.ex1.ipynb). Why it is error?   
    2. Design a TextPreprocessor for data_loader  [ex2](src/0.ex2.ipynb). 
    3. Code a DataLoader from `emotion` dataset  [ex3](src/2.ex_dataloader.ipynb). 
-   4. Design a FFN model to predict next 10 numbers of a magic array [ex4](./src/SimpleNN/3.ex4.FFN.ipynb)
+   4. Design a FFN model to predict next 10 numbers of a magic array [ex4](./src/SimpleNN/ex4.FFN.ipynb).
+   5. Design a FFN model for sentence classification, using `emotion` dataset [ex5](./src/SimpleNN/ex5.FFN_emotion.ipynb) (require finised all previous exercises).  Desing a FFN Neural network that learn to classify the emotional label of a given input sentence. We assum that, each word in the input sentence have a weight affect to the label. To this end, we need to learn these hidden weights. 
+      ![model_arc](./img/dl_tutorial-Trang-2.drawio.png)
 
-![overview](img/overview_dl.drawio.png)
+4. **Overview of a ML system** 
+
+
+   ![overview](img/overview_dl.drawio.png)
 
 ##  Python ENV 
 
