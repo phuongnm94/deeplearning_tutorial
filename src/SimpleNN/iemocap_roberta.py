@@ -65,11 +65,15 @@ class EmotionClassifier(pl.LightningModule):
         # PUSH YOUR CODE HERE 
         # this is model architecture init process 
     
-        self.model =  None
-        self.output_layer =  None
-        self.softmax_layer =  None
-        self.loss_computation = None
     
+        self.model = AutoModel.from_pretrained(pre_trained_model_name)
+        
+        self.dropout_layer = nn.Dropout(0.3)
+
+        self.output_layer = nn.Linear(d_model, num_labels)
+        self.softmax_layer = nn.Softmax(dim=1)
+        self.loss_computation = torch.nn.CrossEntropyLoss()
+
         # ===================================
         
 
@@ -80,7 +84,7 @@ class EmotionClassifier(pl.LightningModule):
         # PUSH YOUR CODE HERE 
         # this is forward function
         # y_hat is the output of softmax layer
-    
+     
 
         # ===================================
         
@@ -169,7 +173,7 @@ if __name__ == "__main__":
                         )
     
     # init model 
-    model = EmotionClassifier(pre_trained_model_name="pre_trained_model_name", num_labels=num_labels)
+    model = EmotionClassifier(pre_trained_model_name=pre_trained_model_name, num_labels=num_labels)
     
     # train
     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
