@@ -44,7 +44,7 @@ class BatchPreprocessor(object):
             label = sample[1]
             labels.append(int(label))
 
-        word_ids_from_bert_tokenizer = bert_tokenizer(raw_sentences,  padding='max_length', max_length=512, truncation=True, return_tensors='pt')
+        word_ids_from_bert_tokenizer = self.tokenizer(raw_sentences,  padding='max_length', max_length=512, truncation=True, return_tensors='pt')
 
         return (word_ids_from_bert_tokenizer, torch.LongTensor(labels), raw_sentences) 
 
