@@ -53,7 +53,8 @@ class BatchPreprocessor(object):
 class EmotionClassifier(pl.LightningModule):
     def __init__(
         self, 
-        pre_trained_model_name='roberta-base'
+        pre_trained_model_name='roberta-base', 
+        num_labels=1
     ):
         """Initialize."""
         super().__init__() 
@@ -168,7 +169,7 @@ if __name__ == "__main__":
                         )
     
     # init model 
-    model = EmotionClassifier()
+    model = EmotionClassifier(pre_trained_model_name="pre_trained_model_name", num_labels=num_labels)
     
     # train
     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
