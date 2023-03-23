@@ -65,14 +65,6 @@ class EmotionClassifier(pl.LightningModule):
         # PUSH YOUR CODE HERE 
         # this is model architecture init process 
     
-    
-        self.model = AutoModel.from_pretrained(pre_trained_model_name)
-        
-        self.dropout_layer = nn.Dropout(0.3)
-
-        self.output_layer = nn.Linear(d_model, num_labels)
-        self.softmax_layer = nn.Softmax(dim=1)
-        self.loss_computation = torch.nn.CrossEntropyLoss()
 
         # ===================================
         
