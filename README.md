@@ -8,9 +8,18 @@
       1. learn the FFN network via an examples: 
          1. construct NN not using library [example1](./src/SimpleNN/1.FFN_no_lib.ipynb) 
          2. and using `torch.nn`, `torch.optim` libraries [example2](./src/SimpleNN/2.FFN_torch_lib.ipynb) 
-         3. Do [exercise 4](./src/SimpleNN/3.ex4.FFN.ipynb) and [exercise 5](./src/SimpleNN/ex5.FFN_emotion.ipynb)
-   2. check the optimizer function (Adam/SGD/Adagrad/..) and learning rate values
-   3. write log or tensorboard  
+         3. Do [exercise 4](./src/SimpleNN/3.ex4.FFN.ipynb) and [exercise 5](./src/SimpleNN/ex5.FFN_emotion.ipynb) .. [exercise 8](src/SimpleNN/iemocap_roberta.py)
+   2. check the optimizer function (Adam/SGD/Adagrad/..) and learning rate values 
+   4. <span style="color:red">write log using tensorboard</span>.
+      1. learn the pytorch lightning object 
+      2. learn how to log tensorboard and open it.
+         1. install tensorboard `pip install tensorboard tensorboardX`
+            > **Note**: when  you install package tensorboard, pytorch lightning logging will saved in tensorboard object for visualization. 
+
+         2. **Exercise**: Modify file `src/SimpleNN/iemocap_roberta.py` for tensorboard logging. In the `training_step` or `valid_step` function of Pytorch lightning object, using ```self.log(`attribute_monitor`, `values`)``` to save the values to tensorboard object. For example: `self.log('valid_f1', 0.6)`
+         3. Open `tensorboard` viewer on the VScode or via a web browser. 
+        
+
 
 3. **Exercises**
    1. Fix the error in the this code [ex1](src/0.ex1.ipynb). Why it is error?   

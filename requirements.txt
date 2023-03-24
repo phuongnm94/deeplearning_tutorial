@@ -3,3 +3,5 @@ torch
 pytorch_lightning
 torchtext
 ipywidgets
+tensorboard
+tensorboardX
