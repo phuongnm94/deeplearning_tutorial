@@ -16,8 +16,14 @@
          1. install tensorboard `pip install tensorboard tensorboardX`
             > **Note**: when  you install package tensorboard, pytorch lightning logging will saved in tensorboard object for visualization. 
 
-         2. **Exercise**: Modify file `src/SimpleNN/iemocap_roberta.py` for tensorboard logging. In the `training_step` or `valid_step` function of Pytorch lightning object, using ```self.log(`attribute_monitor`, `values`)``` to save the values to tensorboard object. For example: `self.log('valid_f1', 0.6)`
-         3. Open `tensorboard` viewer on the VScode or via a web browser. 
+         2. **Exercise**: Modify file `src/SimpleNN/9.iemocap_roberta.py` for tensorboard logging. In the `training_step` or `valid_step` function of Pytorch lightning object, using ```self.log(`attribute_monitor`, `values`)``` to save the values to tensorboard object. For example: `self.log('valid_f1', 0.6)`
+         3. Run `tensorboard` server on the VScode terminal. 
+            ```
+            tensorboard --host 0.0.0.0 --port 6009 --logdir "."
+            ```
+            and access to it via a web browser (e.g., Chorme, [http://spcc-a100g02:6009](http://spcc-a100g02:6009)) 
+           
+    
         
 
 
