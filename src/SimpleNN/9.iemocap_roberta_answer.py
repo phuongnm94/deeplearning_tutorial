@@ -53,8 +53,7 @@ class BatchPreprocessor(object):
 class EmotionClassifier(pl.LightningModule):
     def __init__(
         self, 
-        pre_trained_model_name='roberta-base', 
-        num_labels=1
+        model_configs
     ):
         """Initialize."""
         super().__init__() 
@@ -62,14 +61,15 @@ class EmotionClassifier(pl.LightningModule):
         # ===================================
         # PUSH YOUR CODE HERE 
         # this is model architecture init process 
-        # self.save_hyperparameters(config)
+        self.save_hyperparameters(model_configs)
+        self.model_configs = model_configs
     
-        self.model = AutoModel.from_pretrained(pre_trained_model_name)
+        self.model = AutoModel.from_pretrained(model_configs.pre_trained_model_name)
         d_model = self.model.config.hidden_size
         
-        self.dropout_layer = nn.Dropout(0.2)
+        self.dropout_layer = nn.Dropout(model_configs.dropout)
 
-        self.output_layer = nn.Linear(d_model, num_labels)
+        self.output_layer = nn.Linear(d_model, model_configs.num_labels)
         self.softmax_layer = nn.Softmax(dim=1)
         self.loss_computation = torch.nn.CrossEntropyLoss()
 
@@ -138,18 +138,17 @@ class EmotionClassifier(pl.LightningModule):
                 "weight_decay": 0.001,
             },
         ]
-        lr = 1e-5
 
         optimizer = torch.optim.AdamW(optimizer_grouped_parameters,
                             betas=(0.9, 0.98),  # according to RoBERTa paper
-                            lr=lr,
+                            lr=self.model_configs.lr,
                         eps=1e-06, weight_decay=0.001)
         
         num_gpus = 1
-        max_ep=5
+        max_ep=self.model_configs.max_epochs
         t_total = (len(train_loader) // (1 * num_gpus) + 1) * max_ep
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, max_lr=lr, pct_start=float(0/t_total),
+            optimizer, max_lr=self.model_configs.lr, pct_start=float(0/t_total),
             final_div_factor=10000,
             total_steps=t_total, anneal_strategy='linear'
         ) 
@@ -179,13 +178,21 @@ if __name__ == "__main__":
     # 
     # data loader
     # Load config from pretrained name or path 
-    pre_trained_model_name = 'roberta-large'
-    bert_tokenizer = AutoTokenizer.from_pretrained(pre_trained_model_name)
-    batch_size = 8
+    model_configs = argparse.Namespace(
+        pre_trained_model_name = 'roberta-large',
+        batch_size = 8,
+        max_epochs=5,
+        dropout=0.2,
+        lr = 1e-5,
+        num_labels=num_labels,
+        data_name_pattern = data_name_pattern
+    )
+    
+    bert_tokenizer = AutoTokenizer.from_pretrained(model_configs.pre_trained_model_name)
     data_loader = BatchPreprocessor(bert_tokenizer)
-    test_loader = DataLoader(json.load(open(f"{data_folder}/{data_name_pattern.format('test')}")), batch_size=batch_size, collate_fn=data_loader, shuffle=True)
-    train_loader = DataLoader(json.load(open(f"{data_folder}/{data_name_pattern.format('train')}")), batch_size=batch_size, collate_fn=data_loader, shuffle=True)
-    valid_loader = DataLoader(json.load(open(f"{data_folder}/{data_name_pattern.format('valid')}")), batch_size=batch_size, collate_fn=data_loader, shuffle=True)
+    test_loader = DataLoader(json.load(open(f"{data_folder}/{data_name_pattern.format('test')}")), batch_size=model_configs.batch_size, collate_fn=data_loader, shuffle=True)
+    train_loader = DataLoader(json.load(open(f"{data_folder}/{data_name_pattern.format('train')}")), batch_size=model_configs.batch_size, collate_fn=data_loader, shuffle=True)
+    valid_loader = DataLoader(json.load(open(f"{data_folder}/{data_name_pattern.format('valid')}")), batch_size=model_configs.batch_size, collate_fn=data_loader, shuffle=True)
     for e in test_loader:
         print('First epoch data:')
         print('input data\n', e[0])
@@ -200,13 +207,13 @@ if __name__ == "__main__":
                                         auto_insert_metric_name=True, 
                                         mode="max", 
                                         monitor="valid_f1", 
-                                        filename=pre_trained_model_name+"-iemocap-nodrop-{valid_f1:.2f}",
+                                        filename=model_configs.pre_trained_model_name+"-iemocap-nodrop-{valid_f1:.2f}",
                                     #   every_n_train_steps=opts.ckpt_steps
                                         )
     
 
     # init trainer 
-    trainer = Trainer(max_epochs=5, 
+    trainer = Trainer(max_epochs=model_configs.max_epochs, 
                         accelerator='gpu', 
                         devices=[0], # GPU id, usually is 0 or 1
                         callbacks=[checkpoint_callback],
@@ -215,7 +222,7 @@ if __name__ == "__main__":
                         )
     
     # init model 
-    model = EmotionClassifier(pre_trained_model_name=pre_trained_model_name, num_labels=num_labels)
+    model = EmotionClassifier(model_configs)
     
     # train
     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
