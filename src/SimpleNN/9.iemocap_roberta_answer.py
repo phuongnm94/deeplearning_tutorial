@@ -207,7 +207,7 @@ if __name__ == "__main__":
                                         auto_insert_metric_name=True, 
                                         mode="max", 
                                         monitor="valid_f1", 
-                                        filename=model_configs.pre_trained_model_name+"-iemocap-nodrop-{valid_f1:.2f}",
+                                        filename=model_configs.pre_trained_model_name+"-iemocap-{valid_f1:.2f}",
                                     #   every_n_train_steps=opts.ckpt_steps
                                         )
     
