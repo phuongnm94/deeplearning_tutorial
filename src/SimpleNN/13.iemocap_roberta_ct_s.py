@@ -57,11 +57,19 @@ class BatchPreprocessor(object):
             labels += [int(label) for label in sample['labels']] + [-1]* (max_len_conversation - lengths[i])
         
             # ===================================
-            # PUSH YOUR CODE HERE 
             # add true/false values to `intra_speaker_masekd``
             # create a 2 dimmensions list (list in list by using 2 for loop).
             # Remember that the information of speaker is saved in the `sample['genders']` where sample is a conversation which is one element of batch.
             # the same genders is the same user.  
+            # ===================================
+            speakers_masked= [[False]*max_len_conversation for j in range(max_len_conversation)]
+            for i_u in range(max_len_conversation-1):
+                if i_u > len(sample['genders']):
+                    break
+                for j_u in range(i_u, max_len_conversation):
+                    speakers_masked[i_u][j_u] = sample['genders'][i_u] == sample['genders'][j_u]
+                    speakers_masked[j_u][i_u] = sample['genders'][i_u] == sample['genders'][j_u]
+            intra_speaker_masekd.append(speakers_masked)
             # ===================================
 
 
@@ -104,11 +112,17 @@ class EmotionClassifier(pl.LightningModule):
             for param in self.model.encoder.layer[i].parameters():
                 param.requires_grad = False
 
-        d_model = self.model.config.hidden_size
-
+        d_model = self.model.config.hidden_size        
         nhead = 8
         num_layer = 1
-        self.context_modeling = nn.TransformerEncoder(encoder_layer=nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True), num_layers=num_layer)  # using transformer model in here 
+        self.context_modeling = nn.TransformerEncoder(encoder_layer=nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True), num_layers=num_layer)   # using transformer model in here 
+ 
+        # ===================================
+        # PUSH YOUR CODE HERE 
+        # this is model architecture init process  
+
+        # ===================================
+
         self.pos_encoding = PositionalEncoding(d_model)  # position encoding => for utterance positions (e.g., u_1, u_2, ...) in conversation. 
 
         self.dropout_layer = nn.Dropout(model_configs.dropout)
@@ -122,20 +136,32 @@ class EmotionClassifier(pl.LightningModule):
         
 
     def training_step(self, batch, batch_idx, return_y_hat=False):
-        input_ids, labels, padding_utterance_masked, raw_sentences = batch
+        input_ids, labels, padding_utterance_masked, intra_speaker_masked, raw_sentences = batch
         n_conversation, len_longest_conversation = padding_utterance_masked.shape[0], padding_utterance_masked.shape[1]
 
   
         sentence_vectors = self.model(**input_ids)[1]
+
+        # ===================================
+        # PUSH YOUR CODE HERE 
+        # this is model forwarding process 
+        
+
+        # ===================================
 
         sentence_vectors_with_convers_shape = sentence_vectors.reshape(n_conversation, len_longest_conversation, -1)
         u_vector_fused_by_context = self.context_modeling(sentence_vectors_with_convers_shape +  self.pos_encoding(sentence_vectors_with_convers_shape), src_key_padding_mask=padding_utterance_masked)
         u_vector_fused_by_context = u_vector_fused_by_context.reshape(n_conversation*len_longest_conversation, -1)
 
 
-        # 
         # combine global context (u_vector_fused_by_context) and local context (sentence_vectors)z
         y_hat = self.output_layer_context(self.dropout_layer(u_vector_fused_by_context)) + self.output_layer(self.dropout_layer(sentence_vectors))
+
+        # =================================== 
+        # PUSH YOUR CODE HERE 
+        # change `y_hat` vector  
+
+        # ===================================
         probabilities = self.softmax_layer(y_hat)
 
         loss = self.loss_computation(probabilities, labels)
@@ -152,7 +178,7 @@ class EmotionClassifier(pl.LightningModule):
         return out
     
     def validation_step(self, batch, batch_idx):
-        v_multi_conversation, labels, padding_utterance_masked, raw_sentences = batch
+        v_multi_conversation, labels, padding_utterance_masked, intra_speaker_masked, raw_sentences = batch
         loss, y_hat = self.training_step(batch, batch_idx, return_y_hat=True)
         predictions = torch.argmax(y_hat, dim=1)
 
@@ -292,4 +318,4 @@ if __name__ == "__main__":
     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
     
     # test
-    trainer.test(model, test_loader, ckpt_path='/home/phuongnm/deeplearning_tutorial/roberta-large-iemocap-valid/f1=62.92.ckpt')
+    trainer.test(model, test_loader, ckpt_path=checkpoint_callback.best_model_path)
