@@ -17,9 +17,31 @@
             "name": "Raw data processor",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/SimpleNN/data/raw_data/raw_data_preprocessor.py",
-            "cwd": "${workspaceFolder}/src/SimpleNN/data/raw_data/",
+            "program": "${workspaceFolder}/src/SimpleNN/data/raw_data_preprocessor.py",
+            "cwd": "${workspaceFolder}/src/SimpleNN/data/",
             "console": "integratedTerminal",
+            "justMyCode": false
+        },
+
+        {
+            "name": "train",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/SimpleNN/15.emocap_roberta_ct_sota.py",
+            "cwd": "${workspaceFolder}/",
+            "console": "integratedTerminal",
+            "args": [
+                "--data_name_pattern",
+                "dailydialog.{}window2.json",
+                "--max_ep",
+                "30",
+                "--lr", 
+                "2e-5",
+                "--batch_size", 
+                "1",
+                "--froze_bert_layer",
+                "10"
+            ],
             "justMyCode": false
         }
     ]
