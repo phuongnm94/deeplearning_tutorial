@@ -13,13 +13,13 @@ import random
 import argparse
 import torch.nn.functional as F
 from sklearn.metrics import f1_score
+from sklearn.utils import class_weight
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 import argparse
 import math
-
 # =====================
 
 def set_random_seed(seed: int):
@@ -53,7 +53,7 @@ class BatchPreprocessor(object):
         # collect all sentences
         for i, sample in enumerate(batch):
             # conversation padding 
-            padded_conversation = sample['sentences_mixed_around'] + ["<pad_sentence>"]* (max_len_conversation - lengths[i])
+            padded_conversation = sample['sentences_mixed_around'] + ["</s> <pad_sentence> </s>"]* (max_len_conversation - lengths[i])
             raw_sentences.append(padded_conversation)
             raw_sentences_flatten += padded_conversation
 
@@ -122,7 +122,7 @@ class EmotionClassifier(pl.LightningModule):
         self.output_layer_context = nn.Linear(d_model, model_configs.num_labels)
         self.output_layer = nn.Linear(d_model, model_configs.num_labels)
         self.softmax_layer = nn.Softmax(dim=1)
-        self.loss_computation = torch.nn.CrossEntropyLoss(ignore_index=-1, label_smoothing=0.1) # label_smoothing
+        self.loss_computation = torch.nn.CrossEntropyLoss(ignore_index=-1, label_smoothing=0.1, weight=torch.Tensor(self.model_configs.class_weights)) # label_smoothing
 
         self.validation_step_outputs = []
         self.test_step_outputs = []
@@ -145,7 +145,7 @@ class EmotionClassifier(pl.LightningModule):
         # output requirements: 
         #   - sentence_vectors: is the average of word vectors in curent sentence, for example: = 1/3 * (w2 + w3 + w4)
         # ===================================
-        sentence_vectors = None
+        sentence_vectors = torch.sum(h_words_hidden_states*cur_sentence_indexes_masked.unsqueeze(-1), dim=1) * (1/ torch.sum(cur_sentence_indexes_masked, dim=1)).unsqueeze(-1)
         # ===================================
 
         # sentence_vectors = bert_out[1]
@@ -188,11 +188,30 @@ class EmotionClassifier(pl.LightningModule):
     def _eval_epoch_end(self, batch_parts):
         predictions = torch.cat([torch.argmax(batch_output['y_hat'], dim=1) for batch_output in batch_parts],  dim=0)
         labels = torch.cat([batch_output['labels']  for batch_output in batch_parts],  dim=0)
-        f1_weighted = f1_score(
-            labels.cpu(),
-            predictions.cpu(),
-            average="weighted",
-        )
+
+        # remove padding labels 
+        labels, predictions = labels.cpu().tolist(), predictions.cpu().tolist()
+        len_label = len(labels)
+        for i in range(len_label):
+            if labels[len_label-i-1] == -1:
+                labels.pop(len_label-i-1)
+                predictions.pop(len_label-i-1)
+        
+        if 'dailydialog' in self.model_configs.data_name_pattern:
+            # 0 happy, 1 neutral, 2 anger, 3 sad, 4 fear, 5 surprise, 6 disgust 
+            f1_weighted = f1_score(
+                labels,
+                predictions,
+                average="micro",
+                labels=[0,2,3,4,5,6] # do not count the neutral class in the dailydialog dataset
+            )
+        else:
+            f1_weighted = f1_score(
+                labels,
+                predictions,
+                average="weighted",
+            )
+            
         return f1_weighted*100
     
     def on_validation_epoch_end(self):
@@ -270,11 +289,24 @@ if __name__ == "__main__":
         all_labels+=  sample['labels']
     # count label 
     options.num_labels = len(set(all_labels))
+
+    # compute class weight - for imbalance data 
+    # class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(np.array(all_labels)), y=np.array(all_labels))
+    unique = list(np.unique(np.array(all_labels)))
+    labels_dict = dict([(i, e) for i, e in enumerate(list(np.bincount(np.array(all_labels))))])
+    
+    total = np.sum(list(labels_dict.values()))
+    weights = []
+    for key in unique:
+        score = math.log(total/labels_dict[key])
+        weights.append(score)
+    class_weights = weights
     
     # 
     # data loader
     # Load config from pretrained name or path 
     model_configs = options
+    model_configs.class_weights = class_weights
     
     batch_size = options.batch_size
     bert_tokenizer = AutoTokenizer.from_pretrained(model_configs.pre_trained_model_name)
@@ -307,7 +339,7 @@ if __name__ == "__main__":
                         accelerator="gpu", devices=1,
                         callbacks=[checkpoint_callback, lr_monitor],
                         default_root_dir="./", 
-                        val_check_interval=0.5 # 10% epoch, run evaluate one time 
+                        val_check_interval=0.5 if  'dailydialog' not in options.data_name_pattern else 0.05 # 10% epoch, run evaluate one time 
                         )
     
     # init model 
